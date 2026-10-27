@@ -84,8 +84,11 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-     - name: Trivy report (json)
+      # Trivy report (json)
+      - name: Trivy report (json)
         uses: aquasecurity/trivy-action@0.35.0
+        env:
+          TRIVY_NO_PROGRESS: "true"
         with:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}
           format: 'json'
@@ -101,7 +104,7 @@ jobs:
           name: trivy-report
           path: trivy-report.json
 
-      # Trivy : tableau dans les logs (bloque si CRITICAL/HIGH)
+      # Trivy : tableau dans les logs (ne bloque plus)
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@0.35.0
         env:
@@ -109,6 +112,6 @@ jobs:
         with:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
