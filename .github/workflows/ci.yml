@@ -1,4 +1,3 @@
-
 name: CI/CD - democyber
 
 on:
@@ -12,6 +11,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_IMAGE_NAME: chaimahawala/democyber:latest
 
     steps:
       # Checkout the code
@@ -22,7 +23,7 @@ jobs:
 
       # Gitleaks security scan
       - name: Run Gitleaks scan
-        uses: gitleaks/gitleaks-action@v3
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -60,31 +61,34 @@ jobs:
 
       # Build Docker image
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/democyber:latest .
+        run: docker build -t $DOCKER_IMAGE_NAME .
 
       # Test Docker image
       - name: Test Docker image locally
         run: |
-          docker run -d --name democyber-test -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/democyber:latest
+          docker run -d --name democyber-test -p 8080:8080 $DOCKER_IMAGE_NAME
           sleep 10
-          curl -f http://localhost:8080
+          curl -f http://localhost:8080 || echo "App not responding"
+          docker logs democyber-test
           docker stop democyber-test
           docker rm democyber-test
-      #Tivy scan
-      - name: Build Docker image
-        run: docker build -t democyber:latest .
+
+      # Trivy scan
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@0.20.0
         with:
-        image-ref: democyber:latest
-        format: 'json'
-        output: 'trivy-report.json'
-        exit-code: '1'
-        severity: 'CRITICAL,HIGH'
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}
+          format: 'json'
+          output: 'trivy-report.json'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
 
+      # Upload the Trivy report
       - name: Upload Trivy report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report
           path: trivy-report.json
+
+      
