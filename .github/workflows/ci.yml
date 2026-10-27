@@ -92,4 +92,11 @@ jobs:
           name: trivy-report
           path: trivy-report.json
 
-      
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
